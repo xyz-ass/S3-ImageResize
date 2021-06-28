@@ -2,7 +2,10 @@ package dego;
 
 import com.amazonaws.services.s3.model.S3ObjectInputStream;
 
+import java.io.ByteArrayOutputStream;
 import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStream;
 
 /**
  * @author YuNingbo
@@ -36,10 +39,11 @@ public class Util {
         }
     }
 
-    public static String getFileType(S3ObjectInputStream is){
+    public static String getFileType(byte[] src){
         try{
+
             byte[] b = new byte[3];
-            is.read(b, 0, b.length);
+            System.arraycopy(src,0, b, 0, 3);
             String xxx = bytesToHexString(b);
             xxx = xxx.toUpperCase();
             return checkType(xxx);
@@ -48,8 +52,24 @@ public class Util {
         }
     }
 
+    public static ByteArrayOutputStream cloneInputStream(InputStream input) {
+        try {
+            ByteArrayOutputStream baos = new ByteArrayOutputStream();
+            byte[] buffer = new byte[1024];
+            int len;
+            while ((len = input.read(buffer)) > -1) {
+                baos.write(buffer, 0, len);
+            }
+            baos.flush();
+            return baos;
+        } catch (IOException e) {
+            e.printStackTrace();
+            return null;
+        }
+    }
+
     public static void main(String[] args) throws Exception {
-        FileInputStream is = new FileInputStream("F:\\桌面\\a.jpg");
+        FileInputStream is = new FileInputStream("F:\\桌面\\a1.jpg");
         byte[] b = new byte[3];
         is.read(b, 0, b.length);
         String xxx = bytesToHexString(b);

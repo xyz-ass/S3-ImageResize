@@ -73,7 +73,9 @@ public class Handler implements
             // Download the image from S3 into a stream
             AmazonS3 s3Client = AmazonS3ClientBuilder.defaultClient();
             S3Object s3Object = s3Client.getObject(new GetObjectRequest(bucket, srcKey));
-            String imageMemi = Util.getFileType(s3Object.getObjectContent());
+            InputStream objectData = s3Object.getObjectContent();
+            ByteArrayOutputStream bs = Util.cloneInputStream(objectData);
+            String imageMemi = Util.getFileType(bs.toByteArray());
             String imageType;
             if(JPG_MIME.equals(imageMemi)){
                 imageType = "jpg";
@@ -83,10 +85,8 @@ public class Handler implements
                 System.out.println("Wrong ImageType:"+imageMemi);
                 return response;
             }
-            InputStream objectData = s3Object.getObjectContent();
-
             // Read the source image
-            BufferedImage srcImage = ImageIO.read(objectData);
+            BufferedImage srcImage = ImageIO.read(new ByteArrayInputStream(bs.toByteArray()));
             int srcHeight = srcImage.getHeight();
             int srcWidth = srcImage.getWidth();
             // Infer the scaling factor to avoid stretching the image
