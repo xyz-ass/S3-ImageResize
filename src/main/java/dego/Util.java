@@ -1,7 +1,8 @@
 package dego;
 
-import com.amazonaws.services.s3.model.S3ObjectInputStream;
-
+import javax.imageio.ImageIO;
+import java.awt.*;
+import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -68,15 +69,57 @@ public class Util {
         }
     }
 
+    public static ByteArrayOutputStream resizeImage(InputStream is, String imageType, String size) throws IOException {
+        BufferedImage srcImage = ImageIO.read(is);
+        int srcHeight = srcImage.getHeight();
+        int srcWidth = srcImage.getWidth();
+        // Infer the scaling factor to avoid stretching the image
+        // unnaturally
+        String[] sizeArr = size.split("x");
+        float maxWidth = Integer.parseInt(sizeArr[0]);
+        float maxHeight = Integer.parseInt(sizeArr[1]);
+        float scalingFactor;
+        if(maxWidth==0 && maxHeight==0){
+            return null;
+        }if(maxWidth==0 && maxHeight!=0){
+            scalingFactor = maxHeight/srcHeight;
+        }else if(maxWidth!=0 && maxHeight==0){
+            scalingFactor = maxWidth/srcWidth;
+        }else{
+            scalingFactor = Math.min(maxWidth / srcWidth, maxHeight / srcHeight);
+        }
+
+        int width = (int) (scalingFactor * srcWidth);
+        int height = (int) (scalingFactor * srcHeight);
+
+        BufferedImage resizedImage = new BufferedImage(width, height,
+                BufferedImage.TYPE_INT_ARGB);
+        Graphics2D g = resizedImage.createGraphics();
+        // Fill with white before applying semi-transparent (alpha) images
+        g.setPaint(Color.white);
+        g.fillRect(0, 0, width, height);
+        // Simple bilinear resize
+        g.setRenderingHint(RenderingHints.KEY_INTERPOLATION,
+                RenderingHints.VALUE_INTERPOLATION_BILINEAR);
+        g.drawImage(srcImage, 0, 0, width, height, null);
+        g.dispose();
+
+        // Re-encode image to target format
+        ByteArrayOutputStream os = new ByteArrayOutputStream();
+        ImageIO.write(resizedImage, imageType, os);
+        return os;
+    }
+
     public static void main(String[] args) throws Exception {
-        FileInputStream is = new FileInputStream("F:\\桌面\\a1.jpg");
-        byte[] b = new byte[3];
+        FileInputStream is = new FileInputStream("F:\\桌面\\a.png");
+        ByteArrayOutputStream os = resizeImage(is, "png","500x0");
+        /*byte[] b = new byte[3];
         is.read(b, 0, b.length);
         String xxx = bytesToHexString(b);
         xxx = xxx.toUpperCase();
         System.out.println("头文件是：" + xxx);
         String ooo = checkType(xxx);
-        System.out.println("后缀名是：" + ooo);
+        System.out.println("后缀名是：" + ooo);*/
     }
 
 }

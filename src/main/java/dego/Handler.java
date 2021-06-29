@@ -19,7 +19,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
@@ -85,44 +84,10 @@ public class Handler implements
                 System.out.println("Wrong ImageType:"+imageMemi);
                 return response;
             }
-            // Read the source image
-            BufferedImage srcImage = ImageIO.read(new ByteArrayInputStream(bs.toByteArray()));
-            int srcHeight = srcImage.getHeight();
-            int srcWidth = srcImage.getWidth();
-            // Infer the scaling factor to avoid stretching the image
-            // unnaturally
-            String[] sizeArr = size.split("x");
-            float maxWidth = Integer.parseInt(sizeArr[0]);
-            float maxHeight = Integer.parseInt(sizeArr[1]);
-            float scalingFactor;
-            if(maxWidth==0 && maxHeight==0){
+            ByteArrayOutputStream os = Util.resizeImage(new ByteArrayInputStream(bs.toByteArray()), imageType, size);
+            if(os==null){
                 return response;
-            }if(maxWidth==0 && maxHeight!=0){
-                scalingFactor = maxHeight/srcHeight;
-            }else if(maxWidth!=0 && maxHeight==0){
-                scalingFactor = maxWidth/srcWidth;
-            }else{
-                scalingFactor = Math.min(maxWidth / srcWidth, maxHeight / srcHeight);
             }
-
-            int width = (int) (scalingFactor * srcWidth);
-            int height = (int) (scalingFactor * srcHeight);
-
-            BufferedImage resizedImage = new BufferedImage(width, height,
-                    BufferedImage.TYPE_INT_RGB);
-            Graphics2D g = resizedImage.createGraphics();
-            // Fill with white before applying semi-transparent (alpha) images
-            g.setPaint(Color.white);
-            g.fillRect(0, 0, width, height);
-            // Simple bilinear resize
-            g.setRenderingHint(RenderingHints.KEY_INTERPOLATION,
-                    RenderingHints.VALUE_INTERPOLATION_BILINEAR);
-            g.drawImage(srcImage, 0, 0, width, height, null);
-            g.dispose();
-
-            // Re-encode image to target format
-            ByteArrayOutputStream os = new ByteArrayOutputStream();
-            ImageIO.write(resizedImage, imageType, os);
             InputStream is = new ByteArrayInputStream(os.toByteArray());
             // Set Content-Length and Content-Type
             ObjectMetadata meta = new ObjectMetadata();
