@@ -9,6 +9,11 @@ Auto Resize Image for S3 Storage
 const S3Host = "Your S3 host"
 const ApiGateWay = "Your APi GateWay/resize-image-lambda?key=%s&size=%s"
 
+type ApiGateWayResponse struct {
+	Key string `json:"key"`
+}
+
+
 func AutoResizeImg(c *gin.Context){
 	s3Uri := c.Query("uri")
 	size := c.Query("size")
