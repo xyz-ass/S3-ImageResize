@@ -26,8 +26,7 @@ import java.util.regex.Pattern;
  * @description: TODO
  * @date 2021-05-0912:26
  **/
-public class Handler implements
-        RequestHandler<APIGatewayProxyRequestEvent, APIGatewayProxyResponseEvent> {
+public class Handler implements RequestHandler<APIGatewayProxyRequestEvent, APIGatewayProxyResponseEvent> {
     private final String JPG_MIME =  "image/jpg";
     private final String PNG_MIME =  "image/png";
     private final Pattern resizedPattern = Pattern.compile(".*_\\d+x\\d+.*");
@@ -49,9 +48,9 @@ public class Handler implements
             // 先使用原始路径
             response.setBody(String.format(resFormat, srcKey));
 
-                // 如果原始路径是已经压缩过的，则返回原始路径
-                if(resizedPattern.matcher(srcKey).matches()){
-                    return response;
+            // 如果原始路径是已经压缩过的，则返回原始路径
+            if(resizedPattern.matcher(srcKey).matches()){
+                return response;
             }
 
             String size = params.getOrDefault("size","");

@@ -3,10 +3,7 @@ package dego;
 import javax.imageio.ImageIO;
 import java.awt.*;
 import java.awt.image.BufferedImage;
-import java.io.ByteArrayOutputStream;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStream;
+import java.io.*;
 
 /**
  * @author YuNingbo
@@ -111,8 +108,13 @@ public class Util {
     }
 
     public static void main(String[] args) throws Exception {
-        FileInputStream is = new FileInputStream("F:\\桌面\\a.png");
-        ByteArrayOutputStream os = resizeImage(is, "png","500x0");
+        FileInputStream is = new FileInputStream("C:\\Users\\yunin\\Desktop\\5e8566ef7bdf361d59dce92810b4b480.jpg");
+        ByteArrayOutputStream os = resizeImage(is, "png","50x0");
+        File f = new File("C:\\Users\\yunin\\Desktop\\5e8566ef7bdf361d59dce92810b4b480——1.jpg");
+        OutputStream oos = new FileOutputStream(f);
+        oos.write(os.toByteArray());
+        oos.flush();
+        oos.close();
         /*byte[] b = new byte[3];
         is.read(b, 0, b.length);
         String xxx = bytesToHexString(b);
