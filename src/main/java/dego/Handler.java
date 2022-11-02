@@ -27,8 +27,6 @@ import java.util.regex.Pattern;
  * @date 2021-05-0912:26
  **/
 public class Handler implements RequestHandler<APIGatewayProxyRequestEvent, APIGatewayProxyResponseEvent> {
-    private final String JPG_MIME =  "image/jpg";
-    private final String PNG_MIME =  "image/png";
     private final Pattern resizedPattern = Pattern.compile(".*_\\d+x\\d+.*");
     private final String bucket = "metaverses";
     private final String resFormat = "{\"key\":\"%s\"}";
@@ -44,6 +42,7 @@ public class Handler implements RequestHandler<APIGatewayProxyRequestEvent, APIG
         try {
             Map<String,String> params = event.getQueryStringParameters();
             String srcKey = params.get("key");
+            String onlyPng = params.getOrDefault("png","false");
             System.out.println("srcKey:"+srcKey);
             // 先使用原始路径
             response.setBody(String.format(resFormat, srcKey));
@@ -73,20 +72,18 @@ public class Handler implements RequestHandler<APIGatewayProxyRequestEvent, APIG
             S3Object s3Object = s3Client.getObject(new GetObjectRequest(bucket, srcKey));
             InputStream objectData = s3Object.getObjectContent();
             ByteArrayOutputStream bs = Util.cloneInputStream(objectData);
-            String imageMemi = Util.getFileType(bs.toByteArray());
-            String imageType;
-            if(JPG_MIME.equals(imageMemi)){
-                imageType = "jpg";
-            }else if(PNG_MIME.equals(imageMemi)){
-                imageType= "png";
+            byte[] byteArr = bs.toByteArray();
+            String imageMemi = Util.getFileType(byteArr);
+            if("".equals(imageMemi)){
+                return response;
+            }
+            ByteArrayOutputStream os;
+            if(imageMemi.contains("gif") && "false".equals(onlyPng)){
+                os = Util.resizeGif(new ByteArrayInputStream(byteArr),size);
             }else{
-                System.out.println("Wrong ImageType:"+imageMemi);
-                return response;
+                os = Util.resizeImage(byteArr, size);
             }
-            ByteArrayOutputStream os = Util.resizeImage(new ByteArrayInputStream(bs.toByteArray()), imageType, size);
-            if(os==null){
-                return response;
-            }
+
             InputStream is = new ByteArrayInputStream(os.toByteArray());
             // Set Content-Length and Content-Type
             ObjectMetadata meta = new ObjectMetadata();
@@ -96,14 +93,14 @@ public class Handler implements RequestHandler<APIGatewayProxyRequestEvent, APIG
             try {
                 s3Client.putObject(bucket, dstKey, is, meta);
             }catch(Exception e){
+                e.printStackTrace();
                 return response;
             }
-
             response.setBody(String.format(resFormat, dstKey));
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            e.printStackTrace();
+            return response;
         }
-
         return response;
     }
 }

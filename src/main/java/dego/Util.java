@@ -1,5 +1,10 @@
 package dego;
 
+import com.madgag.gif.fmsware.AnimatedGifEncoder;
+import com.madgag.gif.fmsware.GifDecoder;
+import net.coobird.thumbnailator.Thumbnails;
+import net.coobird.thumbnailator.resizers.Resizer;
+
 import javax.imageio.ImageIO;
 import java.awt.*;
 import java.awt.image.BufferedImage;
@@ -32,14 +37,13 @@ public class Util {
         switch (xxxx) {
             case "FFD8FF": return "image/jpg";
             case "89504E": return "image/png";
-            //case "474946": return "image/gif";
+            case "474946": return "image/gif";
             default: return "";
         }
     }
 
     public static String getFileType(byte[] src){
         try{
-
             byte[] b = new byte[3];
             System.arraycopy(src,0, b, 0, 3);
             String xxx = bytesToHexString(b);
@@ -66,13 +70,68 @@ public class Util {
         }
     }
 
-    public static ByteArrayOutputStream resizeImage(InputStream is, String imageType, String size) throws IOException {
-        BufferedImage srcImage = ImageIO.read(is);
+    public static ByteArrayOutputStream resizeImage(byte[] imgByteArray, String size) throws IOException {
+        BufferedImage srcImage = ImageIO.read(new ByteArrayInputStream(imgByteArray));
         int srcHeight = srcImage.getHeight();
         int srcWidth = srcImage.getWidth();
-        // Infer the scaling factor to avoid stretching the image
-        // unnaturally
-        String[] sizeArr = size.split("x");
+
+        int[] arr = getZoomSize(srcWidth,srcHeight,size);
+        int width = arr[0];
+        int height = arr[1];
+
+        /*BufferedImage resizedImage = new BufferedImage(width, height,
+                BufferedImage.TYPE_INT_RGB);
+        Graphics2D g = resizedImage.createGraphics();
+        // 保持png背景透明
+        resizedImage = g.getDeviceConfiguration().createCompatibleImage(width,height,Transparency.TRANSLUCENT);
+        g = resizedImage.createGraphics();
+
+        // Simple bilinear resize
+        g.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
+        g.drawImage(srcImage, 0, 0, width, height, null);
+        g.dispose();*/
+
+        // Re-encode image to target format
+        ByteArrayOutputStream os = new ByteArrayOutputStream();
+        Thumbnails.of(new ByteArrayInputStream(imgByteArray)).height(height).width(width).outputQuality(0.9).toOutputStream(os);
+        //ImageIO.write(resizedImage, "png", os);
+        return os;
+    }
+
+    public static ByteArrayOutputStream resizeGif(InputStream is, String size) throws IOException {
+        // GIF需要特殊处理
+        GifDecoder decoder = new GifDecoder();
+        int status = decoder.read(is);
+        if (status != GifDecoder.STATUS_OK) {
+            throw new IOException("read gif image error!");
+        }
+        int srcWidth = decoder.getFrameSize().width;
+        int srcHeight = decoder.getFrameSize().height;
+        int[] arr = getZoomSize(srcWidth,srcHeight,size);
+        int width = arr[0];
+        int height = arr[1];
+
+        // 拆分一帧一帧的压缩之后合成
+        ByteArrayOutputStream os = new ByteArrayOutputStream();
+        AnimatedGifEncoder encoder = new AnimatedGifEncoder();
+        encoder.start(os);
+        encoder.setRepeat(decoder.getLoopCount());
+        for (int i = 0; i < decoder.getFrameCount(); i++) {
+            encoder.setDelay(decoder.getDelay(i));// 设置播放延迟时间
+            BufferedImage bufferedImage = decoder.getFrame(i);// 获取每帧BufferedImage流
+            BufferedImage zoomImage = new BufferedImage(width, height, bufferedImage.getType());
+            Image image = bufferedImage.getScaledInstance(width, height, Image.SCALE_SMOOTH);
+            Graphics gc = zoomImage.getGraphics();
+            gc.setColor(Color.WHITE);
+            gc.drawImage(image, 0, 0, null);
+            encoder.addFrame(zoomImage);
+        }
+        encoder.finish();
+        return os;
+    }
+
+    private static int[] getZoomSize(int srcWidth,int srcHeight,String targetSize){
+        String[] sizeArr = targetSize.split("x");
         float maxWidth = Integer.parseInt(sizeArr[0]);
         float maxHeight = Integer.parseInt(sizeArr[1]);
         float scalingFactor;
@@ -88,33 +147,19 @@ public class Util {
 
         int width = (int) (scalingFactor * srcWidth);
         int height = (int) (scalingFactor * srcHeight);
-
-        BufferedImage resizedImage = new BufferedImage(width, height,
-                BufferedImage.TYPE_INT_ARGB);
-        Graphics2D g = resizedImage.createGraphics();
-        // Fill with white before applying semi-transparent (alpha) images
-        g.setPaint(Color.white);
-        g.fillRect(0, 0, width, height);
-        // Simple bilinear resize
-        g.setRenderingHint(RenderingHints.KEY_INTERPOLATION,
-                RenderingHints.VALUE_INTERPOLATION_BILINEAR);
-        g.drawImage(srcImage, 0, 0, width, height, null);
-        g.dispose();
-
-        // Re-encode image to target format
-        ByteArrayOutputStream os = new ByteArrayOutputStream();
-        ImageIO.write(resizedImage, imageType, os);
-        return os;
+        return new int[]{width,height};
     }
 
     public static void main(String[] args) throws Exception {
-        FileInputStream is = new FileInputStream("C:\\Users\\yunin\\Desktop\\5e8566ef7bdf361d59dce92810b4b480.jpg");
-        ByteArrayOutputStream os = resizeImage(is, "png","50x0");
-        File f = new File("C:\\Users\\yunin\\Desktop\\5e8566ef7bdf361d59dce92810b4b480——1.jpg");
+        FileInputStream is = new FileInputStream("C:\\Users\\yunin\\Desktop\\sss.png");
+        ByteArrayOutputStream os = resizeImage(cloneInputStream(is).toByteArray(), "200x200");
+        File f = new File("C:\\Users\\yunin\\Desktop\\s.png");
         OutputStream oos = new FileOutputStream(f);
         oos.write(os.toByteArray());
         oos.flush();
         oos.close();
+
+        //resizeGif("C:\\Users\\yunin\\Desktop\\a8e145b1d15a618ad5e3a9ad42de0155.gif",200,300,"C:\\Users\\yunin\\Desktop\\aaa.gif");
         /*byte[] b = new byte[3];
         is.read(b, 0, b.length);
         String xxx = bytesToHexString(b);
