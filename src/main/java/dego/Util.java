@@ -117,13 +117,13 @@ public class Util {
         encoder.start(os);
         encoder.setRepeat(decoder.getLoopCount());
         for (int i = 0; i < decoder.getFrameCount(); i++) {
-            encoder.setDelay(decoder.getDelay(i));// 设置播放延迟时间
-            BufferedImage bufferedImage = decoder.getFrame(i);// 获取每帧BufferedImage流
-            BufferedImage zoomImage = new BufferedImage(width, height, bufferedImage.getType());
-            Image image = bufferedImage.getScaledInstance(width, height, Image.SCALE_SMOOTH);
-            Graphics gc = zoomImage.getGraphics();
-            gc.setColor(Color.WHITE);
-            gc.drawImage(image, 0, 0, null);
+            encoder.setDelay(decoder.getDelay(i)); // 设置播放延迟时间
+            BufferedImage bufferedImage = decoder.getFrame(i); // 获取每帧BufferedImage流
+
+            ByteArrayOutputStream osTemp = new ByteArrayOutputStream();
+            Thumbnails.of(bufferedImage).height(height).width(width).outputFormat("jpg").outputQuality(0.9).toOutputStream(osTemp);
+            BufferedImage zoomImage = ImageIO.read(new ByteArrayInputStream(osTemp.toByteArray()));
+
             encoder.addFrame(zoomImage);
         }
         encoder.finish();
@@ -151,7 +151,7 @@ public class Util {
     }
 
     public static void main(String[] args) throws Exception {
-        FileInputStream is = new FileInputStream("C:\\Users\\yunin\\Desktop\\sss.png");
+        FileInputStream is = new FileInputStream("C:\\Users\\yunin\\Desktop\\aaa.gif");
         ByteArrayOutputStream os = resizeImage(cloneInputStream(is).toByteArray(), "200x200");
         File f = new File("C:\\Users\\yunin\\Desktop\\s.png");
         OutputStream oos = new FileOutputStream(f);
@@ -159,14 +159,6 @@ public class Util {
         oos.flush();
         oos.close();
 
-        //resizeGif("C:\\Users\\yunin\\Desktop\\a8e145b1d15a618ad5e3a9ad42de0155.gif",200,300,"C:\\Users\\yunin\\Desktop\\aaa.gif");
-        /*byte[] b = new byte[3];
-        is.read(b, 0, b.length);
-        String xxx = bytesToHexString(b);
-        xxx = xxx.toUpperCase();
-        System.out.println("头文件是：" + xxx);
-        String ooo = checkType(xxx);
-        System.out.println("后缀名是：" + ooo);*/
     }
 
 }

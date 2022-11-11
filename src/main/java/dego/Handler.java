@@ -79,7 +79,8 @@ public class Handler implements RequestHandler<APIGatewayProxyRequestEvent, APIG
             }
             ByteArrayOutputStream os;
             if(imageMemi.contains("gif") && "false".equals(onlyPng)){
-                os = Util.resizeGif(new ByteArrayInputStream(byteArr),size);
+                //os = Util.resizeGif(new ByteArrayInputStream(byteArr),size);  gif如果不转成png的话返回原图
+                return response;
             }else{
                 os = Util.resizeImage(byteArr, size);
             }
